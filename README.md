@@ -34,4 +34,7 @@ This tool visualizes the lunar surface by processing and rendering high-resoluti
 - **Reason**: Flask is a lightweight web framework that is easy to set up and deploy across platforms.
 - **Function**: Flask handles data requests, processes DEM files, and serves heightmaps and synthetic images to the front end, which then builds the 3D terrain.
 
+### Screenshots
+![image](https://github.com/user-attachments/assets/bd3f1c1a-3b82-4e85-b860-4bdf1f98324b)
+- **Single Band View Vs 3D Generated Render**: 
 
