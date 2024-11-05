@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading - Chandrayaan Viz Tool</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes moonRotation {
+            0% {
+                background-position: 0% 0%;
+            }
+            50% {
+                background-position: 150% 0%;
+            }
+            100% {
+                background-position: 300% 0%;
+            }
+        }
+
+        .moon-background {
+            top: 3.5rem;
+            right: 50%;
+            display: block;
+            width: 50rem;
+            height: 50rem;
+            position: absolute;
+            border-radius: 50%;
+            background-image: url('https://www.solarsystemscope.com/textures/download/2k_moon.jpg');
+            background-repeat: repeat-x;
+            background-size: 110% 100%;
+            opacity: 1;
+            animation-name: moonRotation;
+            animation-duration: 15s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            animation-fill-mode: forwards !important;
+            box-shadow: inset -10px 8px 6px -5px #ffffff, 
+            inset 20px -20px 40px 30px rgba(0, 0, 0, 0.9), 
+            7px -6px 14px rgba(255, 255, 255, 0.3215686275);
+        }
+
+        .loading-section {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            min-height: 80vh;
+            position: relative;
+            text-align: center;
+            padding-right: 5%;
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            margin-left: 20px;
+            color: #e0e0e0;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+        }
+
+/* HTML: <div class="loader"></div> */
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: fit-content;
+  margin-right: 100px;
+  margin-top: 100px;
+  font-weight: bold;
+  font-family: monospace;
+  white-space: pre;
+  font-size: 30px;
+  line-height: 1.2em;
+  height:1.2em;
+  overflow: hidden;
+}
+.loader:before {
+  content:"Generating Terrain...\A⌰oading...\A⌰⍜ading...\A⌰⍜⏃ding...\A⌰⍜⏃⎅ing...\A⌰⍜⏃⎅⟟ng...\A⌰⍜⏃⎅⟟⋏g...\A⌰⍜⏃⎅⟟⋏☌...\A⌰⍜⏃⎅⟟⋏☌⟒..\A⌰⍜⏃⎅⟟⋏☌⟒⏁.\A⌰⍜⏃⎅⟟⋏☌⟒⏁⋔"; 
+  white-space: pre;
+  display: inline-block;
+  animation: l39 1s infinite steps(11) alternate;
+}
+
+@keyframes l39 {
+  100%{transform: translateY(-100%)}
+}
+
+@keyframes l38 {
+  100%{transform: translateY(-100%)}
+}
+        .footer {
+            background: rgba(0, 0, 0, 0.9);
+            color: #d0d0d0;
+            padding: 20px 0;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .footer a {
+            color: #f1c40f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="moon-background"></div>
+
+    <div class="loading-section">
+        <div class="loader"></div>
+        
+    </div>
+    
+    <footer class="footer text-center">
+        <p>&copy; 2024 Chandrayaan Viz Tool | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </footer>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

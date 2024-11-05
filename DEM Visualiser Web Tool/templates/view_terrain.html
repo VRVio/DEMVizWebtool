@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Terrain View</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .footer {
+            background: rgba(0, 0, 0, 0.9);
+            color: #d0d0d0;
+            padding: 20px 0;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        .footer a {
+            color: #f1c40f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        #terrain-container {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+            background-color: #333;
+            border: 1px solid #555;
+            position: relative;
+            overflow: hidden; /* Hide scrollbars */
+        }
+        #sun-controls {
+            margin-top: 20px;
+        }
+        .form-group label {
+            color: #f8f9fa; /* Light text color */
+        }
+        #loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 5px solid #f8f9fa;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="moon-background"></div>
+
+    <div class="container">
+        <h1 class="mt-5 text-center">3D Terrain View</h1>
+        <div id="terrain-container">
+            <div id="loading-spinner"></div>
+        </div>
+        <div id="sun-controls" class="text-center">
+            <h2>Sun Controls</h2>
+            <div class="form-group">
+                <label for="azimuth">Azimuth:</label>
+                <input type="range" id="azimuth" min="-180" max="180" step="1" value="45" class="form-control-range">
+                <span id="azimuth-value">45</span>°
+            </div>
+            <div class="form-group">
+                <label for="elevation">Elevation:</label>
+                <input type="range" id="elevation" min="0" max="90" step="1" value="45" class="form-control-range">
+                <span id="elevation-value">45</span>°
+                <div id="controls" class="text-center">
+                    <!-- Existing sun controls -->
+                    <button id="save-snapshot" class="btn btn-primary mt-3">Save TIFF</button>
+                </div>
+            </div>  
+        </div>
+    </div>
+    <!-- Ensure scripts are in the correct order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const filePath = "{{ file_path }}";
+        console.log("Fetching heightmap from path:", filePath);  // Debug statement
+
+        const container = document.getElementById('terrain-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        loadingSpinner.style.display = 'block';  // Show spinner
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 5000); // Increased render distance
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        // Orbital camera parameters
+        let radius = 500;  // Distance from the center
+        let theta = Math.PI / 4;  // Angle around vertical axis
+        let phi = Math.PI / 4;    // Angle from vertical axis
+
+        function updateCamera() {
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+
+            camera.position.set(x, y, z);
+            camera.lookAt(new THREE.Vector3(-20, -20, -20));
+        }
+
+        // Fetch the heightmap data
+        fetch(`/heightmap?file_path=${encodeURIComponent(filePath)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch the heightmap data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const { heightmap, width, height } = data;
+
+            loadingSpinner.style.display = 'none';  // Hide spinner
+
+            const geometry = new THREE.PlaneGeometry(width, height, width - 1, height - 1);
+            const vertices = geometry.attributes.position.array;
+
+            for (let i = 0; i < vertices.length; i += 3) {
+                let x = (i / 3) % width;  // X index
+                let y = Math.floor((i / 3) / width);  // Y index
+                let height = heightmap[y][x];
+                vertices[i + 2] = height;
+            }
+            geometry.computeVertexNormals();
+
+            // Create a grey, moon-like material
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x808080,  // Grey color
+                roughness: 1.0,   // Rough surface to mimic moon terrain
+                metalness: 0.0    // Non-metallic appearance
+            });
+
+            const plane = new THREE.Mesh(geometry, material);
+            plane.rotation.x = - Math.PI / 2;
+            scene.add(plane);
+
+            // Add ambient light for better visibility of the terrain
+            const ambientLight = new THREE.AmbientLight(0x404040);  // Soft white light
+            scene.add(ambientLight);
+
+            // Add a directional light to mimic sunlight with shadow
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // White light
+            directionalLight.castShadow = true;
+            directionalLight.position.set(0, 100, 100).normalize();  // Initial position of the light
+            scene.add(directionalLight);
+
+            // Initialize the camera position
+            updateCamera();
+
+            // Add controls to adjust sun's azimuth and elevation
+            const azimuthInput = document.getElementById('azimuth');
+            const elevationInput = document.getElementById('elevation');
+            const azimuthValue = document.getElementById('azimuth-value');
+            const elevationValue = document.getElementById('elevation-value');
+
+            function updateSun() {
+                const azimuth = azimuthInput.value;
+                const elevation = elevationInput.value;
+
+                azimuthValue.textContent = azimuth;
+                elevationValue.textContent = elevation;
+
+                // Convert azimuth and elevation to spherical coordinates
+                const radAzimuth = THREE.MathUtils.degToRad(azimuth);
+                const radElevation = THREE.MathUtils.degToRad(elevation);
+
+                // Set light position based on azimuth and elevation
+                directionalLight.position.set(
+                    100 * Math.sin(radAzimuth) * Math.cos(radElevation),
+                    100 * Math.sin(radElevation),
+                    100 * Math.cos(radAzimuth) * Math.cos(radElevation)
+                ).normalize();
+                scene.background = new THREE.Color(0x333333); // Set background color
+
+                renderer.render(scene, camera);
+            }
+
+            azimuthInput.addEventListener('input', updateSun);
+            elevationInput.addEventListener('input', updateSun);
+            updateSun(); // Initial call to set up the sun
+
+            function animate() {
+                requestAnimationFrame(animate);
+                updateCamera();  // Update camera position on each frame
+                renderer.render(scene, camera);
+            }
+            animate();
+        })
+        .catch(error => {
+            console.error('Error fetching heightmap data:', error);
+        });
+
+        // Add custom controls for orbital camera movement
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        container.addEventListener('mousedown', (event) => {
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        container.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+
+                const sensitivity = 0.005;
+                theta += deltaMove.x * sensitivity;
+                phi -= deltaMove.y * sensitivity;
+
+                // Clamp phi to prevent flipping
+                phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+                updateCamera();
+
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+            }
+        });
+
+        container.addEventListener('wheel', (event) => {
+            const zoomSpeed = 1;
+            radius += event.deltaY * zoomSpeed;
+            radius = Math.max(100, radius); // Clamp radius to avoid zooming too close
+            updateCamera();
+            event.preventDefault();
+        });
+
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+
+        document.getElementById('save-snapshot').addEventListener('click', () => {
+            renderer.render(scene, camera); // Ensure the scene is up-to-date
+            renderer.domElement.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('snapshot', blob);
+                formData.append('cameraPosition', JSON.stringify(camera.position));
+                formData.append('cameraRotation', JSON.stringify(camera.rotation));
+                formData.append('sunPosition', JSON.stringify(directionalLight.position));
+
+                console.log("Saving snapshot...");
+                console.log("Blob size:", blob.size);
+                console.log("Camera position:", camera.position);
+                console.log("Camera rotation:", camera.rotation);
+                console.log("Sun position:", directionalLight.position);
+
+                fetch('/save_snapshot', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Snapshot saved:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving snapshot:', error);
+                });
+            }, 'image/png'); // Specify the format for the blob
+        });
+    </script>
+    <footer class="footer text-center">
+        <p>&copy; 2024 Chandrayaan Viz Tool | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </footer>
+</body>
+</html>

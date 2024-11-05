@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload and Crop TIFF Files - Chandrayaan Viz Tool</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes moonRotation {
+            0% {
+                background-position: 0% 0%;
+            }
+            50% {
+                background-position: 150% 0%;
+            }
+            100% {
+                background-position: 300% 0%;
+            }
+        }
+
+        .moon-background {
+            top: 3.5rem;
+            right: 50%;
+            display: block;
+            width: 50rem;
+            height: 50rem;
+            position: absolute;
+            border-radius: 50%;
+            background-image: url('https://www.solarsystemscope.com/textures/download/2k_moon.jpg');
+            background-repeat: repeat-x;
+            background-size: 110% 100%;
+            opacity: 1;
+            animation-name: moonRotation;
+            animation-duration: 15s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            animation-fill-mode: forwards !important;
+            box-shadow: inset -10px 8px 6px -5px #ffffff, 
+            inset 20px -20px 40px 30px rgba(0, 0, 0, 0.9), 
+            7px -6px 14px rgba(255, 255, 255, 0.3215686275);
+        }
+
+        .upload-section {
+            padding: 80px 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+
+        .upload-form {
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1); /* Glass effect */
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .upload-form h2 {
+            margin-bottom: 20px;
+            color: #e0e0e0;
+        }
+
+        .upload-form label {
+            color: #d0d0d0;
+        }
+
+        .upload-form input[type="text"], .upload-form input[type="file"] {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: #f4f4f4;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .upload-form button {
+            background-color: #f1c40f;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-form button:hover {
+            background-color: #e0b90f;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.9);
+            color: #d0d0d0;
+            padding: 20px 0;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .footer a {
+            color: #f1c40f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .loader {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: fit-content;
+            margin: 0;
+            font-weight: bold;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 30px;
+            line-height: 1.2em;
+            height: 1.2em;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+            z-index: 1000; /* Ensure it stays above other content */
+        }
+
+        .loader:before {
+            content: "Generating Terrain...\A⌰oading...\A⌰⍜ading...\A⌰⍜⏃ding...\A⌰⍜⏃⎅ing...\A⌰⍜⏃⎅⟟ng...\A⌰⍜⏃⎅⟟⋏g...\A⌰⍜⏃⎅⟟⋏☌...\A⌰⍜⏃⎅⟟⋏☌⟒..\A⌰⍜⏃⎅⟟⋏☌⟒⏁.\A⌰⍜⏃⎅⟟⋏☌⟒⏁⋔";
+            white-space: pre;
+            display: inline-block;
+            animation: l39 1s infinite steps(11) alternate;
+        }
+
+        @keyframes l39 {
+            100% { transform: translateY(-100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="moon-background"></div>
+
+    <div class="upload-section">
+        <form class="upload-form" method="POST" enctype="multipart/form-data" action="/process" id="upload-form">
+            <h2>Upload and Crop TIFF File</h2>
+
+            <!-- File Upload -->
+            <label for="tiff-file">Choose TIFF File:</label>
+            <input type="file" id="tiff-file" name="tiff-file" accept=".tiff, .tif" required>
+
+            <!-- Coordinate Inputs -->
+            <label for="ulx_geo">Upper-left x-coordinate (longitude):</label>
+            <input type="text" id="ulx_geo" name="ulx_geo" placeholder="e.g., -122.4194" required>
+
+            <label for="uly_geo">Upper-left y-coordinate (latitude):</label>
+            <input type="text" id="uly_geo" name="uly_geo" placeholder="e.g., 37.7749" required>
+
+            <label for="lrx_geo">Lower-right x-coordinate (longitude):</label>
+            <input type="text" id="lrx_geo" name="lrx_geo" placeholder="e.g., -122.4194" required>
+
+            <label for="lry_geo">Lower-right y-coordinate (latitude):</label>
+            <input type="text" id="lry_geo" name="lry_geo" placeholder="e.g., 37.7749" required>
+
+            <button type="submit">Upload and Crop</button>
+        </form>
+    </div>
+
+    <!-- Loader Element -->
+    <div id="loader" class="loader">Generating Terrain...</div>
+
+    <footer class="footer text-center">
+        <p>&copy; 2024 Chandrayaan Viz Tool | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </footer>
+
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+            
+            var form = document.querySelector('.upload-form');
+            var loader = document.getElementById('loader');
+            
+            form.style.display = 'none'; // Hide the form
+            loader.style.display = 'block'; // Show the loader
+
+            // Simulate form submission and hide the loader after 6 seconds
+            setTimeout(function() {
+                document.getElementById('upload-form').submit(); // Submit the form
+            }, 6000);
+        });
+    </script>
+</body>
+</html>
